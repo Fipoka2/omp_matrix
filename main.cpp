@@ -11,10 +11,11 @@ struct m_time {
     double max = 0;
 };
 
-const size_t MATRIX_SIZE = 6000;
-const unsigned short int RUNS = 2;
+const size_t MATRIX_SIZE = 400;
+const unsigned short int RUNS = 5;
 
 int main() {
+    omp_set_nested(true);
     Matrix a(MATRIX_SIZE, MATRIX_SIZE);
     Matrix b(MATRIX_SIZE, MATRIX_SIZE);
     Matrix c(MATRIX_SIZE, MATRIX_SIZE);
@@ -26,24 +27,14 @@ int main() {
 
     for (int i = 0; i < RUNS; i++) {
         double times[4];
-        double start;
-        double end;
-        start = omp_get_wtime();
-        Matrix res = Matrix::getMaxElemMatrix(a,b,c);
-        end = omp_get_wtime();
-        times[0] = end - start;
-        start = omp_get_wtime();
-        Matrix line = Matrix::calculateByLines(a,b,c);
-        end = omp_get_wtime();
-        times[1] = end - start;
-        start = omp_get_wtime();
-        Matrix column = Matrix::calculateByColumns(a,b,c);
-        end = omp_get_wtime();
-        times[2] = end - start;
-        start = omp_get_wtime();
-        Matrix block = Matrix::calculateByBlocks(a,b,c);
-        end = omp_get_wtime();
-        times[3] = end - start;
+        Matrix::MatrixResult res = Matrix::getMaxElemMatrix(a,b,c);
+        times[0] = res.time;
+        Matrix::MatrixResult line = Matrix::calculateByLines(a,b,c);
+        times[1] = line.time;
+        Matrix::MatrixResult column = Matrix::calculateByColumns(a,b,c);
+        times[2] = column.time;
+        Matrix::MatrixResult block = Matrix::calculateByBlocks(a,b,c);
+        times[3] = block.time;
 
         serial.max = serial.max < times[0] ? times[0] : serial.max;
         lines.max = lines.max < times[1] ? times[1] : lines.max;
@@ -66,7 +57,21 @@ int main() {
     columns.average /= RUNS;
     blocks.average /= RUNS;
 
+    Matrix::MatrixResult linesDynamic = Matrix::calculateByLinesDynamic(a,b,c);
+    Matrix::MatrixResult linesG = Matrix::calculateByLinesDynamic(a,b,c);
+    Matrix::MatrixResult linesG2 = Matrix::calculateByLinesDynamic(a,b,c);
+
     cout << "\n serial average: " << serial.average << "\n lines average: "
     << lines.average << "\n columns average: " << columns.average << "\n blocks average: "<< blocks.average;
+
+    cout << "\n\n serial min: " << serial.min << "\n lines min: "
+         << lines.min << "\n columns min: " << columns.min << "\n blocks min: "<< blocks.min;
+
+    cout << "\n\n serial max: " << serial.max << "\n lines max: "
+         << lines.max << "\n columns max: " << columns.max << "\n blocks max: "<< blocks.max;
+
+    cout<< "\nlines dynamic " << linesDynamic.time;
+    cout<< "\nlines guided chunk " << linesG.time;
+    cout<< "\nlines guided chunk " << linesG2.time;
     return 0;
 }
