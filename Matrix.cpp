@@ -2,9 +2,15 @@
 #include <algorithm>
 #include <iostream>
 #include <omp.h>
+#include <random>
 #include "Matrix.h"
 
 const unsigned short int THREADS = 4;
+
+std::random_device rd;
+std::mt19937 mt(rd());
+std::uniform_int_distribution<int> dist(1, 1000);
+
 Matrix::Matrix(size_t str, size_t col) : size(str),colSize(col)
 {
     int i;
@@ -13,8 +19,8 @@ Matrix::Matrix(size_t str, size_t col) : size(str),colSize(col)
     for (i=0; i<str; i++)
     {
         this->data[i] = new int[col];
-        for(size_t j = 0; j < col; ++j)
-            this->data[i][j] = rand() % 1000;
+        for(size_t j = 0; j < col; j++)
+            this->data[i][j] = dist(mt);
     }
 }
 
@@ -47,10 +53,10 @@ Matrix::MatrixResult Matrix::calculateByBlocks(Matrix a, Matrix b, Matrix c) {
     Matrix result(a.size);
     int i,j;
     double start = omp_get_wtime();
-    #pragma omp parallel for private(i) shared(a,b,c,result)
-    for(i=0; i<result.size;i++) {
+    #pragma omp parallel for private(i) shared(a,b,c) schedule(static)
+    for(i=0; i<a.size;i++) {
         #pragma omp parallel for private(j)
-        for(j = 0; j < result.colSize; j++) {
+        for(j = 0; j < a.colSize; j++) {
             result.data[i][j] = std::max({a.data[i][j],b.data[i][j],c.data[i][j]});
         }
     }
@@ -64,10 +70,10 @@ Matrix::MatrixResult Matrix::calculateByColumns(Matrix a, Matrix b, Matrix c) {
     int j,i,v;
     int **arr = result.data;
     double start = omp_get_wtime();
-    for(i=0; i<result.size;i++) {
-        #pragma omp parallel for shared(a,b,c,i) private (j)
-        for(j = 0; j<result.colSize; j++) {
-            arr[i][j] = std::max({a.data[i][j],b.data[i][j],c.data[i][j]});
+    for(i=0; i<a.size;i++) {
+        #pragma omp parallel for shared(a,b,c,i) private (j) schedule(static)
+        for(j = 0; j<a.colSize; j++) {
+            result.data[i][j] = std::max({a.data[i][j],b.data[i][j],c.data[i][j]});
         }
     }
     double end = omp_get_wtime();
@@ -78,9 +84,9 @@ Matrix::MatrixResult Matrix::calculateByLines(Matrix a, Matrix b, Matrix c) {
     Matrix result(a.size);
     int i;
     double start = omp_get_wtime();
-    #pragma omp parallel for shared(a,b,c) private(i)
-    for(i=0; i<result.size;i++) {
-        for(int j = 0; j<result.colSize; j++) {
+    #pragma omp parallel for shared(a,b,c) private(i) schedule(static)
+    for(i=0; i<a.size;i++) {
+        for(int j = 0; j<a.colSize; j++) {
             result.data[i][j] = std::max({a.data[i][j],b.data[i][j],c.data[i][j]});
         }
     }
@@ -88,11 +94,11 @@ Matrix::MatrixResult Matrix::calculateByLines(Matrix a, Matrix b, Matrix c) {
     return {end - start, &result};
 }
 
-void Matrix::print() {
-    for (int i = 0; i < this->size; i++) {
+void Matrix::print(Matrix m) {
+    for (int i = 0; i < m.size; i++) {
         cout<< endl;
-        for (int j = 0; j < this->colSize; i++)
-            std::cout << this->data[i][j] << ' ';
+        for (int j = 0; j < m.colSize; j++)
+            std::cout <<  m.data[i][j]<< ' ';
     }
     cout << endl<<endl;
 
@@ -126,11 +132,11 @@ Matrix::MatrixResult Matrix::calculateByLinesGuided(Matrix a, Matrix b, Matrix c
     return {end - start, &result};
 }
 
-Matrix::MatrixResult Matrix::calculateByLinesGuided2(Matrix a, Matrix b, Matrix c) {
+Matrix::MatrixResult Matrix::calculateByLinesGuided2(Matrix a, Matrix b, Matrix c, int CHUNK_VALUE) {
     Matrix result(a.size);
     int i;
     double start = omp_get_wtime();
-#pragma omp parallel for shared(a,b,c) schedule(guided, 6)
+#pragma omp parallel for shared(a,b,c) schedule(guided, CHUNK_VALUE)
     for(i=0; i<result.size;i++) {
         for(int j = 0; j<result.colSize; j++) {
             result.data[i][j] = std::max({a.data[i][j],b.data[i][j],c.data[i][j]});

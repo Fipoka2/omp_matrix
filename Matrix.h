@@ -19,12 +19,12 @@ class Matrix {
         Matrix(size_t s);
         static MatrixResult calculateByLinesDynamic(Matrix a, Matrix b, Matrix c);
         static MatrixResult calculateByLinesGuided(Matrix a, Matrix b, Matrix c);
-        static MatrixResult calculateByLinesGuided2(Matrix a, Matrix b, Matrix c);
+        static MatrixResult calculateByLinesGuided2(Matrix a, Matrix b, Matrix c, int CHUNK_VALUE);
         static MatrixResult getMaxElemMatrix(Matrix a, Matrix b, Matrix c);
         static MatrixResult calculateByBlocks(Matrix a, Matrix b, Matrix c);
         static MatrixResult calculateByColumns(Matrix a, Matrix b, Matrix c);
         static MatrixResult calculateByLines(Matrix a, Matrix b, Matrix c);
-        void print();
+        static void print(Matrix m);
 };
 
 
